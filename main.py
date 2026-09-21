@@ -235,7 +235,6 @@ top10_summary = (
 )
 
 # 2. 관객수가 많은 영화가 그래프 상단에 오도록 내림차순 정렬
-# (Plotly y축은 기본적으로 아래에서 위로 그려지므로 오름차순으로 정렬해야 위쪽에 1위가 배치됩니다.)
 top10_summary = top10_summary.sort_values("총관객수", ascending=True)
 
 # 3. Plotly 가로 막대그래프 생성
@@ -244,13 +243,13 @@ fig4 = px.bar(
     x="총관객수",
     y="영화명",
     orientation="h",
-    text_auto=",",  # 막대 끝에 숫자 포맷팅 자동 표시
-    custom_data=["차트인일수"],  # Hover 툴팁에 추가 전달할 데이터
+    text_auto=",",
+    custom_data=["차트인일수"],
     title="1년간 박스오피스 총 관객수 TOP 10 영화",
     labels={"총관객수": "기간 내 총 관객수 (명)", "영화명": "영화 제목"},
 )
 
-# 4. 툴팁(Hover) 설정: 마우스 올리면 차트인 일수 표시
+# 4. 툴팁(Hover) 설정
 fig4.update_traces(
     hovertemplate="<b>영화명:</b> %{y}<br><b>총 관객수:</b> %{x:,}명<br><b>10위권 진입 일수:</b> %{customdata[0]}일<extra></extra>",
     marker_color="#2ECC71",
@@ -264,7 +263,7 @@ fig4.update_layout(
 # 그래프 출력
 st.plotly_chart(fig4, use_container_width=True)
 
-# 최고 흥행작 정보 추출 (가장 마지막 행이 1위)
+# 최고 흥행작 정보 추출
 top_movie_name = top10_summary.iloc[-1]["영화명"]
 top_movie_cnt = top10_summary.iloc[-1]["총관객수"]
 top_movie_days = top10_summary.iloc[-1]["차트인일수"]
@@ -274,4 +273,60 @@ st.info(
     f"💡 **이 그래프로 알 수 있는 것:** "
     f"1년간 가장 많은 관객을 모은 흥행 TOP 10 영화의 관객 규모와 롱런 여부(10위권 유지 일수)를 비교할 수 있습니다. "
     f"1위는 **{top_movie_name}**({int(top_movie_cnt):,}명, {top_movie_days}일간 차트인)입니다."
+)
+
+st.markdown("---")
+
+
+# --- 6. [구역 5] 월×요일별 일관객 합계 히트맵 ---
+st.subheader("📌 구역 5. 월별·요일별 관객수 집계 (히트맵)")
+
+# 1. 월과 요일 정보 추출
+df_heatmap = df.copy()
+df_heatmap["월"] = df_heatmap["날짜"].dt.strftime("%m월")
+
+# 요일 한글 이름 매핑 (월요일 ~ 일요일)
+day_map = {0: "월요일", 1: "화요일", 2: "수요일", 3: "목요일", 4: "금요일", 5: "토요일", 6: "일요일"}
+df_heatmap["요일"] = df_heatmap["날짜"].dt.dayofweek.map(day_map)
+
+# 2. 월 x 요일별 관객수 합계 피벗 테이블 생성
+pivot_df = (
+    df_heatmap.groupby(["월", "요일"])["일관객"]
+    .sum()
+    .reset_index()
+)
+
+# 요일 정렬 순서 지정 (월요일 ~ 일요일)
+days_order = ["월요일", "화요일", "수요일", "목요일", "금요일", "토요일", "일요일"]
+
+# Plotly 히트맵 생성
+fig5 = px.density_heatmap(
+    pivot_df,
+    x="요일",
+    y="월",
+    z="일관객",
+    category_orders={"요일": days_order},  # 월요일부터 일요일 순서로 고정
+    color_continuous_scale="Viridis",  # 관객수가 많을수록 밝고 진한 색상
+    title="월별·요일별 박스오피스 관객수 합계 히트맵",
+    labels={"요일": "요일", "월": "월", "일관객": "총 관객수 (명)"},
+    text_auto=False,
+)
+
+# 툴팁(Hover) 및 레이아웃 설정
+fig5.update_traces(
+    hovertemplate="<b>%{y} %{x}</b><br>총 관객수: %{z:,}명<extra></extra>"
+)
+fig5.update_layout(
+    xaxis_title="요일",
+    yaxis_title="월",
+    coloraxis_colorbar=dict(title="관객수 (명)"),
+)
+
+# 그래프 출력
+st.plotly_chart(fig5, use_container_width=True)
+
+# 그래프 설명 문구
+st.info(
+    "💡 **이 그래프로 알 수 있는 것:** "
+    "1년 중 관객 유입이 가장 활발했던 특정 월의 주말(토/일) 패턴과, 평일 중 문화가 있는 날(수요일) 또는 신작 개봉일(수/목)의 시즌별 반응 차이를 직관적으로 확인할 수 있습니다."
 )
