@@ -17,7 +17,7 @@ st.caption("1년치(365일) 박스오피스 데이터를 바탕으로 시간에 
 # --- 1. 데이터 로드 및 전처리 (캐시 적용) ---
 @st.cache_data
 def load_data():
-    url = "https://raw.githubusercontent.com/greatsong/modudata/main/data/kobis_daily.csv"
+    url = "https://raw.githubusercontent.com/happykth/data/main/kobis_daily.csv"
     # CSV 데이터 로드
     df = pd.read_csv(url)
 
